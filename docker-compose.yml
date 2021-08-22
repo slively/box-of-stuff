@@ -1,0 +1,80 @@
+services:
+  db:
+    image: mysql
+    restart: always
+    command: --binlog-format=ROW --character-set-server=utf8mb4
+    volumes:
+      - ./db:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d/:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+    cap_add:
+      - SYS_NICE
+
+  nextcloud:
+    image: nextcloud
+    restart: always
+    ports:
+      - 8080:80
+    links:
+      - db
+    volumes:
+      - ./nextcloud:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=db
+    depends_on:
+      - db
+
+  mattermost:
+    image: mattermost/mattermost-team-edition
+    restart: always
+    ports:
+      - 8081:8065
+    links:
+      - db
+    volumes:
+      - ./mattermost:/var/www/html
+    environment:
+      - MM_USERNAME=mattermost
+      - MM_PASSWORD=mattermost
+      - MM_DBNAME=mattermost
+      - MM_SQLSETTINGS_DRIVERNAME=mysql
+      - MM_SQLSETTINGS_DATASOURCE=mattermost:mattermost@tcp(db:3306)/mattermost?charset=utf8mb4,utf8&readTimeout=30s&writeTimeout=30s
+      - DB_HOST=db
+      - DB_PORT_NUMBER=3306
+    depends_on:
+        - db
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:14.0.0
+    restart: always
+    environment:
+      DB_VENDOR: MYSQL
+      DB_ADDR: db
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: keycloak
+      KEYCLOAK_USER: keycloak
+      KEYCLOAK_PASSWORD: keycloak
+    ports:
+      - 8083:8080
+    depends_on:
+      - db
+
+  wordpress:
+    image: wordpress
+    restart: always
+    ports:
+      - 8084:80
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - ./wordpress:/var/www/html
+    depends_on:
+      - db
