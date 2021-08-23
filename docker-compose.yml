@@ -1,25 +1,25 @@
 services:
   db:
-    image: mysql
+    image: mysql:8.0.26
     restart: always
     command: --binlog-format=ROW --character-set-server=utf8mb4
     volumes:
-      - ./db:/var/lib/mysql
-      - ./db-init:/docker-entrypoint-initdb.d/:ro
+      - ./volumes/db:/var/lib/mysql
+      - ./volumes/db-init:/docker-entrypoint-initdb.d/:ro
     environment:
       - MYSQL_ROOT_PASSWORD=pass
     cap_add:
       - SYS_NICE
 
   nextcloud:
-    image: nextcloud
+    image: nextcloud:22.1.0-apache
     restart: always
     ports:
       - 8080:80
     links:
       - db
     volumes:
-      - ./nextcloud:/var/www/html
+      - ./volumes/nextcloud:/var/www/html
     environment:
       - MYSQL_PASSWORD=nextcloud
       - MYSQL_DATABASE=nextcloud
@@ -29,14 +29,14 @@ services:
       - db
 
   mattermost:
-    image: mattermost/mattermost-team-edition
+    image: mattermost/mattermost-team-edition:5.38
     restart: always
     ports:
       - 8081:8065
     links:
       - db
     volumes:
-      - ./mattermost:/var/www/html
+      - ./volumes/mattermost:/var/www/html
     environment:
       - MM_USERNAME=mattermost
       - MM_PASSWORD=mattermost
@@ -65,7 +65,7 @@ services:
       - db
 
   wordpress:
-    image: wordpress
+    image: wordpress:5.8.0-apache
     restart: always
     ports:
       - 8084:80
@@ -75,6 +75,16 @@ services:
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
     volumes:
-      - ./wordpress:/var/www/html
+      - ./volumes/wordpress:/var/www/html
     depends_on:
       - db
+
+  gitlab:
+    image: 'gitlab/gitlab-ee:14.2.0-ee.0'
+    restart: always
+    ports:
+      - '8082:80'
+    volumes:
+      - './volumes/gitlab/config:/etc/gitlab'
+      - './volumes/gitlab/logs:/var/log/gitlab'
+      - './volumes/gitlab/data:/var/opt/gitlab'

@@ -1,5 +1,1 @@
-db
-db-init
-mattermost
-nextcloud
-wordpress
+volumes/*
